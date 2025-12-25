@@ -88,34 +88,92 @@ if selected == "Home":
 elif selected == "Single Customer":
     st.markdown("## 👤 Single Customer Churn Prediction")
 
-    st.warning(
-        "Prediction is disabled in this public deployment.\n\n"
-        "This page demonstrates the **input schema and UI design**."
+    st.info(
+        "ℹ️ This is a **demo prediction** using rule-based logic.\n\n"
+        "In production, this would be powered by a trained ML model."
     )
 
     col1, col2 = st.columns(2)
-    with col1:
-        st.number_input("Recency (days since last purchase)", 0)
-        st.number_input("Frequency (total purchases)", 0)
-        st.number_input("Monetary Value (total spend)", 0.0)
-    with col2:
-        st.number_input("Average Order Value", 0.0)
-        st.number_input("Purchases in last 90 days", 0)
 
-    st.button("Predict Churn Risk", disabled=True)
+    with col1:
+        recency = st.number_input("Recency (days since last purchase)", min_value=0, value=30)
+        frequency = st.number_input("Frequency (total purchases)", min_value=0, value=5)
+        monetary = st.number_input("Monetary Value (total spend)", min_value=0.0, value=500.0)
+
+    with col2:
+        avg_order = st.number_input("Average Order Value", min_value=0.0, value=100.0)
+        recent_purchases = st.number_input("Purchases in last 90 days", min_value=0, value=2)
+
+    if st.button("Predict Churn Risk"):
+        # --- SAFE MOCK LOGIC ---
+        score = (
+            (recency / 90) * 0.4 +
+            (1 / (frequency + 1)) * 0.2 +
+            (1 / (recent_purchases + 1)) * 0.2 +
+            (1 / (avg_order + 1)) * 0.2
+        )
+
+        churn_prob = min(max(score, 0), 1)
+
+        st.subheader("📊 Prediction Result")
+        st.metric("Churn Probability", f"{churn_prob:.2%}")
+
+        if churn_prob > 0.6:
+            st.error("⚠️ High Risk: Customer is likely to churn")
+        elif churn_prob > 0.3:
+            st.warning("🟡 Medium Risk: Customer may churn")
+        else:
+            st.success("✅ Low Risk: Customer likely to stay")
+
+        st.caption(
+            "⚠️ Demo prediction — values are illustrative, not ML-based."
+        )
+
 
 # -------------------------------------------------
 # BATCH PREDICTION
 # -------------------------------------------------
 elif selected == "Batch Prediction":
-    st.markdown("## 📂 Batch Prediction")
+    st.markdown("## 📂 Batch Customer Churn Prediction")
 
-    st.warning(
-        "Batch prediction is disabled in this public deployment.\n\n"
-        "This section demonstrates how CSV uploads would be handled in production."
+    st.info(
+        "ℹ️ Demo batch prediction using rule-based scoring.\n\n"
+        "Upload a CSV with customer features to simulate churn analysis."
     )
 
-    st.file_uploader("Upload customer CSV file", type=["csv"], disabled=True)
+    uploaded = st.file_uploader("Upload customer CSV file", type=["csv"])
+
+    if uploaded:
+        try:
+            df = pd.read_csv(uploaded)
+
+            # --- SAFE MOCK CHURN SCORE ---
+            df["Churn_Probability"] = (
+                df.iloc[:, 0].rank(pct=True) * 0.4 +
+                df.iloc[:, 1].rank(pct=True) * 0.3 +
+                df.iloc[:, 2].rank(pct=True) * 0.3
+            ).clip(0, 1)
+
+            df["Churn_Risk"] = df["Churn_Probability"].apply(
+                lambda x: "High" if x > 0.6 else "Medium" if x > 0.3 else "Low"
+            )
+
+            st.success("✅ Batch prediction completed (demo)")
+            st.dataframe(df.head())
+
+            csv = df.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                "⬇️ Download Predictions",
+                data=csv,
+                file_name="churn_predictions_demo.csv",
+                mime="text/csv"
+            )
+
+            st.caption("⚠️ Demo-only results for UI and workflow demonstration.")
+
+        except Exception as e:
+            st.error(f"Failed to process file: {e}")
+
 
 # -------------------------------------------------
 # EDA VISUALIZATIONS
