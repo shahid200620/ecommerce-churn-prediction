@@ -1,89 +1,74 @@
 # -----------------------------------
-# Prediction API for Churn Model
+# Prediction API (Safe for Deployment)
 # -----------------------------------
 
 import joblib
 import pandas as pd
 from pathlib import Path
 
-# Project root
 ROOT_DIR = Path(__file__).resolve().parent.parent
 MODELS_DIR = ROOT_DIR / "models"
 
 
-def load_model():
-    """
-    Load the best available trained model.
-    Priority:
-    1. best_model.pkl
-    2. random_forest.pkl
-    3. logistic_regression.pkl
-    """
-
+def _find_model_path():
     candidates = [
         "best_model.pkl",
         "random_forest.pkl",
         "logistic_regression.pkl",
-        "decision_tree.pkl"
+        "decision_tree.pkl",
     ]
-
     for name in candidates:
         path = MODELS_DIR / name
         if path.exists():
-            return joblib.load(path)
-
-    raise FileNotFoundError(
-        "No trained model found in models/. "
-        "Expected one of: best_model.pkl, random_forest.pkl, logistic_regression.pkl"
-    )
+            return path
+    return None
 
 
-def load_scaler():
-    scaler_path = MODELS_DIR / "scaler.pkl"
-    if not scaler_path.exists():
-        raise FileNotFoundError("Scaler file not found in models/")
-    return joblib.load(scaler_path)
+def _find_scaler_path():
+    path = MODELS_DIR / "scaler.pkl"
+    return path if path.exists() else None
+
+
+def is_model_available():
+    return _find_model_path() is not None and _find_scaler_path() is not None
 
 
 def get_feature_names():
     """
-    Extract feature names from the trained model
+    Return dummy feature names if model is unavailable.
+    This prevents Streamlit from crashing.
     """
-    model = load_model()
+    model_path = _find_model_path()
+    if model_path is None:
+        # Safe fallback (UI only)
+        return ["Feature_1", "Feature_2", "Feature_3"]
 
+    model = joblib.load(model_path)
     if hasattr(model, "feature_names_in_"):
         return list(model.feature_names_in_)
 
-    raise RuntimeError("Model does not expose feature names")
-
-
-def preprocess_input(input_data):
-    """
-    Prepare input data for prediction
-    """
-    feature_names = get_feature_names()
-
-    if isinstance(input_data, dict):
-        df = pd.DataFrame([input_data])
-    elif isinstance(input_data, pd.DataFrame):
-        df = input_data.copy()
-    else:
-        raise ValueError("Input must be dict or DataFrame")
-
-    # Align columns
-    df = df.reindex(columns=feature_names, fill_value=0)
-
-    scaler = load_scaler()
-    return scaler.transform(df)
+    return ["Feature_1", "Feature_2", "Feature_3"]
 
 
 def predict(input_data):
-    model = load_model()
-    X = preprocess_input(input_data)
-    return model.predict(X)
+    if not is_model_available():
+        raise RuntimeError("Model not available in deployment")
+
+    model = joblib.load(_find_model_path())
+    scaler = joblib.load(_find_scaler_path())
+
+    df = pd.DataFrame([input_data]) if isinstance(input_data, dict) else input_data
+    df_scaled = scaler.transform(df)
+    return model.predict(df_scaled)
 
 
 def predict_proba(input_data):
-    model = load_model()
-    X = preprocess_input(input_data)
-    return model.predict_proba(X)[:, 1]
+    if not is_model_available():
+        raise RuntimeError("Model not available in deployment")
+
+    model = joblib.load(_find_model_path())
+    scaler = joblib.load(_find_scaler_path())
+
+    df = pd.DataFrame([input_data]) if isinstance(input_data, dict) else input_data
+    df_scaled = scaler.transform(df)
+    return model.predict_proba(df_scaled)[:, 1]

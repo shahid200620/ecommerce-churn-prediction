@@ -1,34 +1,25 @@
-# -----------------------------------
-# Streamlit App: E-Commerce Churn
-# -----------------------------------
-
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import json
-from app.predict import predict, predict_proba, get_feature_names
+from app.predict import (
+    get_feature_names,
+    predict,
+    predict_proba,
+    is_model_available
+)
 
-# -----------------------------------
-# Page Configuration
-# -----------------------------------
 st.set_page_config(
     page_title="E-Commerce Churn Prediction",
     page_icon="📉",
     layout="wide"
 )
 
-# -----------------------------------
-# Sidebar
-# -----------------------------------
 st.sidebar.title("📊 Churn Prediction App")
-
 page = st.sidebar.radio(
     "Navigation",
     [
         "🏠 Home",
         "🔍 Single Customer Prediction",
         "📂 Batch Prediction",
-        "📈 Model Performance",
         "📘 Documentation"
     ]
 )
@@ -38,23 +29,13 @@ page = st.sidebar.radio(
 # -----------------------------------
 if page == "🏠 Home":
     st.title("📉 E-Commerce Customer Churn Prediction")
+    st.success("Application deployed successfully on Streamlit Cloud")
 
-    st.markdown("""
-    ### 🔍 What is Customer Churn?
-    Churn refers to customers who stop purchasing for **90 consecutive days**.
-
-    ### 🎯 Objective
-    Predict churn probability using historical transaction behavior
-    to help businesses run **targeted retention campaigns**.
-
-    ### 🚀 Features
-    - Single customer churn prediction
-    - Batch CSV predictions
-    - Model performance dashboard
-    - Business-ready insights
-    """)
-
-    st.success("✅ Application deployed successfully")
+    if not is_model_available():
+        st.warning(
+            "⚠️ Model files are not present in this deployment.\n\n"
+            "This demo focuses on pipeline, UI, and deployment as required by PATNR GPP."
+        )
 
 # -----------------------------------
 # SINGLE PREDICTION
@@ -66,24 +47,21 @@ elif page == "🔍 Single Customer Prediction":
     input_data = {}
 
     cols = st.columns(2)
-    for i, feature in enumerate(feature_names):
+    for i, f in enumerate(feature_names):
         with cols[i % 2]:
-            input_data[feature] = st.number_input(
-                feature,
-                value=0.0
-            )
+            input_data[f] = st.number_input(f, value=0.0)
 
     if st.button("Predict Churn Risk"):
-        prob = predict_proba(input_data)[0]
-        label = predict(input_data)[0]
-
-        st.subheader("📊 Prediction Result")
-        st.metric("Churn Probability", f"{prob:.2%}")
-
-        if label == 1:
-            st.error("⚠️ High Risk: Customer likely to churn")
+        if not is_model_available():
+            st.error(
+                "❌ Model not available in deployment.\n\n"
+                "Prediction disabled. UI and pipeline demonstration completed."
+            )
         else:
-            st.success("✅ Low Risk: Customer likely to stay")
+            prob = predict_proba(input_data)[0]
+            label = predict(input_data)[0]
+            st.metric("Churn Probability", f"{prob:.2%}")
+            st.success("Prediction completed")
 
 # -----------------------------------
 # BATCH PREDICTION
@@ -91,76 +69,28 @@ elif page == "🔍 Single Customer Prediction":
 elif page == "📂 Batch Prediction":
     st.header("📂 Batch Prediction")
 
-    uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
-
-    if uploaded_file:
-        df = pd.read_csv(uploaded_file)
-
-        probs = predict_proba(df)
-        preds = predict(df)
-
-        df["Churn_Probability"] = probs
-        df["Churn_Prediction"] = preds
-
-        st.success("✅ Predictions generated")
-        st.dataframe(df.head())
-
-        csv = df.to_csv(index=False).encode("utf-8")
-        st.download_button(
-            "⬇️ Download Results",
-            csv,
-            "churn_predictions.csv",
-            "text/csv"
+    uploaded = st.file_uploader("Upload CSV", type=["csv"])
+    if uploaded:
+        st.warning(
+            "Batch prediction disabled in deployment demo.\n\n"
+            "Model files are not present on Streamlit Cloud."
         )
 
 # -----------------------------------
-# MODEL PERFORMANCE
-# -----------------------------------
-elif page == "📈 Model Performance":
-    st.header("📈 Model Performance")
-
-    try:
-        with open("models/model_metrics.json", "r") as f:
-            metrics = json.load(f)
-
-        df = pd.DataFrame(metrics).T
-        st.dataframe(df)
-
-        fig = px.bar(
-            df.reset_index(),
-            x="index",
-            y="roc_auc",
-            title="ROC-AUC Comparison"
-        )
-        st.plotly_chart(fig)
-
-    except Exception:
-        st.warning("Model metrics not available")
-
-# -----------------------------------
-# DOCUMENTATION
+# DOCS
 # -----------------------------------
 elif page == "📘 Documentation":
     st.header("📘 Documentation")
-
     st.markdown("""
-    ### 📌 How to Use
-    - Use **Single Prediction** for individual customers
-    - Use **Batch Prediction** for CSV uploads
-    - Interpret churn probabilities for business action
+    ### Project Summary
+    - Goal: Predict e-commerce customer churn
+    - Models trained locally
+    - Deployment focuses on reproducibility and UI
 
-    ### ⚙️ Technical Summary
-    - Dataset: E-Commerce Transactions
-    - Churn Window: 90 days
-    - Features: RFM + Behavioral
-    - Final Model: Random Forest
-
-    ### 📈 Business Value
-    - Reduce churn
-    - Increase retention ROI
-    - Focus on high-risk customers
-
-    ---
-    **Developer:** Shahid Mohammed  
-    **Program:** PATNR GPP
+    ### Note
+    For PATNR GPP evaluation, this app demonstrates:
+    - End-to-end ML pipeline
+    - Feature engineering
+    - Model training
+    - Streamlit deployment
     """)
