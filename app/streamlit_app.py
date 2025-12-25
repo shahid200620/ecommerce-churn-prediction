@@ -1,106 +1,166 @@
 import streamlit as st
-import pandas as pd
 
-# -----------------------------------
+# -------------------------------------------------
 # Page Config
-# -----------------------------------
+# -------------------------------------------------
 st.set_page_config(
     page_title="E-Commerce Churn Prediction",
     page_icon="📉",
     layout="wide"
 )
 
-# -----------------------------------
+# -------------------------------------------------
+# Custom CSS (SAFE – no JS, no hacks)
+# -------------------------------------------------
+st.markdown("""
+<style>
+.big-title {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+.subtle {
+    color: #6b7280;
+    font-size: 1rem;
+}
+.card {
+    padding: 1.2rem;
+    border-radius: 12px;
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+}
+.metric {
+    font-size: 1.8rem;
+    font-weight: 600;
+}
+.footer {
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin-top: 2rem;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# -------------------------------------------------
 # Sidebar
-# -----------------------------------
-st.sidebar.title("📊 Churn Prediction App")
+# -------------------------------------------------
+st.sidebar.title("📊 Churn Prediction")
+st.sidebar.markdown("Navigate through the app")
+
 page = st.sidebar.radio(
-    "Navigation",
+    "",
     [
         "🏠 Home",
-        "🔍 Single Customer Prediction",
+        "🔍 Single Customer",
         "📂 Batch Prediction",
         "📘 Documentation"
     ]
 )
 
-# -----------------------------------
+# -------------------------------------------------
 # HOME
-# -----------------------------------
+# -------------------------------------------------
 if page == "🏠 Home":
-    st.title("📉 E-Commerce Customer Churn Prediction")
+    st.markdown('<div class="big-title">📉 E-Commerce Customer Churn Prediction</div>', unsafe_allow_html=True)
+    st.markdown('<p class="subtle">PATNR GPP – End-to-End Machine Learning Project</p>', unsafe_allow_html=True)
 
-    st.markdown("""
-    ### Project Overview
-    This project demonstrates an **end-to-end machine learning pipeline**
-    for predicting customer churn in an e-commerce platform.
+    st.markdown("---")
 
-    ### Note on Deployment
-    - Raw data and trained models are **excluded from the public repository**
-    - This deployment focuses on **pipeline design, UI, and reproducibility**
-    """)
+    col1, col2, col3 = st.columns(3)
 
-    st.success("Application deployed successfully")
+    with col1:
+        st.markdown('<div class="card"><b>🎯 Objective</b><br>Predict customers likely to stop purchasing using behavioral data.</div>', unsafe_allow_html=True)
 
-# -----------------------------------
-# SINGLE PREDICTION (UI DEMO)
-# -----------------------------------
-elif page == "🔍 Single Customer Prediction":
-    st.header("🔍 Single Customer Churn Prediction")
+    with col2:
+        st.markdown('<div class="card"><b🧠> ML Pipeline</b><br>EDA → Feature Engineering → Model Training → Deployment.</div>', unsafe_allow_html=True)
+
+    with col3:
+        st.markdown('<div class="card"><b>🚀 Deployment</b><br>Streamlit Cloud demo with production constraints.</div>', unsafe_allow_html=True)
+
+    st.markdown("---")
 
     st.info(
-        "ℹ️ Prediction is disabled in this public deployment.\n\n"
-        "This page demonstrates the **input schema and UI design**."
+        "ℹ️ **Note on Deployment**\n\n"
+        "To follow best practices for data privacy and repository size limits, "
+        "raw data and trained model artifacts are excluded from the public repository. "
+        "This deployment focuses on **pipeline design, UI, and reproducibility**."
     )
 
-    # Static demo features (SAFE)
-    demo_features = [
-        "Recency",
-        "Frequency",
-        "Monetary",
-        "Avg_Order_Value",
-        "Purchase_Count"
-    ]
+# -------------------------------------------------
+# SINGLE CUSTOMER (UI DEMO)
+# -------------------------------------------------
+elif page == "🔍 Single Customer":
+    st.markdown('<div class="big-title">🔍 Single Customer Churn Prediction</div>', unsafe_allow_html=True)
+    st.markdown('<p class="subtle">Demo interface for individual customer analysis</p>', unsafe_allow_html=True)
 
-    input_data = {}
-    cols = st.columns(2)
-    for i, f in enumerate(demo_features):
-        with cols[i % 2]:
-            input_data[f] = st.number_input(f, value=0.0)
+    st.warning(
+        "⚠️ **Prediction Disabled (Public Deployment)**\n\n"
+        "This section demonstrates the **input schema and UI design**. "
+        "Live predictions require private model artifacts which are intentionally excluded."
+    )
+
+    demo_features = {
+        "Recency (days since last purchase)": 0,
+        "Frequency (total purchases)": 0,
+        "Monetary Value (total spend)": 0.0,
+        "Average Order Value": 0.0,
+        "Purchase Count (last 90 days)": 0
+    }
+
+    col1, col2 = st.columns(2)
+    for i, (feature, default) in enumerate(demo_features.items()):
+        with (col1 if i % 2 == 0 else col2):
+            st.number_input(feature, value=default)
 
     st.button("Predict Churn Risk", disabled=True)
 
-# -----------------------------------
+# -------------------------------------------------
 # BATCH PREDICTION (UI DEMO)
-# -----------------------------------
+# -------------------------------------------------
 elif page == "📂 Batch Prediction":
-    st.header("📂 Batch Prediction")
+    st.markdown('<div class="big-title">📂 Batch Prediction</div>', unsafe_allow_html=True)
+    st.markdown('<p class="subtle">Upload-based churn analysis (demo)</p>', unsafe_allow_html=True)
 
-    st.info(
-        "ℹ️ Batch prediction is disabled in public deployment.\n\n"
-        "This section demonstrates how CSV uploads would be handled."
+    st.warning(
+        "⚠️ Batch prediction is disabled in this public deployment.\n\n"
+        "This section demonstrates how CSV uploads would be handled in production."
     )
 
-    st.file_uploader("Upload CSV", type=["csv"], disabled=True)
+    st.file_uploader("Upload customer CSV file", type=["csv"], disabled=True)
 
-# -----------------------------------
+# -------------------------------------------------
 # DOCUMENTATION
-# -----------------------------------
+# -------------------------------------------------
 elif page == "📘 Documentation":
-    st.header("📘 Documentation")
+    st.markdown('<div class="big-title">📘 Documentation</div>', unsafe_allow_html=True)
 
     st.markdown("""
-    ### What This Project Demonstrates
-    - Data preprocessing and feature engineering
-    - Model training and evaluation
-    - Streamlit-based deployment
-    - Production constraints handling
+    ### 📌 Project Overview
+    This project implements a complete **machine learning workflow**
+    to predict customer churn in an e-commerce environment.
 
-    ### Why Models Are Not Included
-    - Data privacy
-    - Repository size limits
-    - Security best practices
+    ### 🔧 Key Components
+    - Data Cleaning & Feature Engineering
+    - Exploratory Data Analysis (EDA)
+    - Model Training & Evaluation
+    - Streamlit Deployment
 
-    ### Program
+    ### 🔒 Why Data & Models Are Excluded
+    - Data privacy considerations  
+    - Repository size constraints  
+    - Security best practices  
+
+    ### 🎓 Program
     **PATNR GPP – E-Commerce Churn Prediction**
+
+    ---
+    **Developer:** Shahid Mohammed
     """)
+
+# -------------------------------------------------
+# Footer
+# -------------------------------------------------
+st.markdown(
+    '<div class="footer">© 2025 • PATNR GPP • Streamlit Deployment Demo</div>',
+    unsafe_allow_html=True
+)
