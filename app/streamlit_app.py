@@ -2,6 +2,7 @@
 # Streamlit App: E-Commerce Churn
 # -----------------------------------
 
+from pathlib import Path
 import sys
 import os
 import json
@@ -10,8 +11,13 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 
-# Fix import path (important for Streamlit)
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# -----------------------------------
+# Project root (IMPORTANT for Streamlit Cloud)
+# -----------------------------------
+ROOT_DIR = Path(__file__).resolve().parent.parent
+
+# Fix import path
+sys.path.append(str(ROOT_DIR))
 
 from app.predict import predict, predict_proba
 
@@ -31,17 +37,25 @@ st.set_page_config(
 # -----------------------------------
 @st.cache_resource
 def load_feature_names():
-    with open("data/processed/feature_names.json", "r") as f:
+    feature_path = ROOT_DIR / "data" / "processed" / "feature_names.json"
+
+    if not feature_path.exists():
+        st.error("❌ feature_names.json not found. Please check deployment files.")
+        return []
+
+    with open(feature_path, "r") as f:
         return json.load(f)
 
 
 @st.cache_resource
 def load_metrics():
-    try:
-        with open("models/model_metrics.json", "r") as f:
-            return json.load(f)
-    except FileNotFoundError:
+    metrics_path = ROOT_DIR / "models" / "model_metrics.json"
+
+    if not metrics_path.exists():
         return {}
+
+    with open(metrics_path, "r") as f:
+        return json.load(f)
 
 
 # -----------------------------------
@@ -105,6 +119,11 @@ elif page == "🔍 Single Customer Prediction":
     """)
 
     feature_names = load_feature_names()
+
+    # 🔒 Safety check (FIXED INDENTATION)
+    if not feature_names:
+        st.stop()
+
     input_data = {}
 
     cols = st.columns(2)
@@ -189,14 +208,15 @@ elif page == "📈 Model Performance":
         st.subheader("📊 Evaluation Metrics")
         st.dataframe(metrics_df)
 
-        fig = px.bar(
-            metrics_df.reset_index(),
-            x="index",
-            y="roc_auc",
-            labels={"index": "Model", "roc_auc": "ROC-AUC"},
-            title="ROC-AUC Comparison"
-        )
-        st.plotly_chart(fig)
+        if "roc_auc" in metrics_df.columns:
+            fig = px.bar(
+                metrics_df.reset_index(),
+                x="index",
+                y="roc_auc",
+                labels={"index": "Model", "roc_auc": "ROC-AUC"},
+                title="ROC-AUC Comparison"
+            )
+            st.plotly_chart(fig)
     else:
         st.warning("Model metrics not available.")
 
