@@ -13,7 +13,6 @@ import os
 # -----------------------------
 MODEL_PATH = "models/best_model.pkl"
 SCALER_PATH = "models/scaler.pkl"
-FEATURES_PATH = "data/processed/feature_names.json"
 
 
 # -----------------------------
@@ -39,15 +38,17 @@ def load_scaler():
     return joblib.load(SCALER_PATH)
 
 
-def load_feature_names():
+def get_feature_names_from_model():
     """
-    Load feature names in correct order
+    Extract feature names directly from trained model
     """
-    if not os.path.exists(FEATURES_PATH):
-        raise FileNotFoundError("Feature names file not found")
+    model = load_model()
 
-    with open(FEATURES_PATH, "r") as f:
-        return json.load(f)
+    if hasattr(model, "feature_names_in_"):
+        return list(model.feature_names_in_)
+
+    raise RuntimeError("Model does not expose feature names")
+
 
 
 # -----------------------------
@@ -63,7 +64,8 @@ def preprocess_input(input_data):
     Returns:
         pd.DataFrame: processed input
     """
-    feature_names = load_feature_names()
+    feature_names = get_feature_names_from_model()
+
 
     if isinstance(input_data, dict):
         df = pd.DataFrame([input_data])
