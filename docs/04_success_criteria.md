@@ -1,0 +1,16 @@
+\# Success Criteria Matrix
+
+
+
+| Metric     | Minimum | Target | Stretch |
+
+|-----------|---------|--------|---------|
+
+| ROC-AUC   | 0.75    | 0.80   | 0.85    |
+
+| Precision | 0.70    | 0.75   | 0.80    |
+
+| Recall    | 0.65    | 0.70   | 0.75    |
+
+
+
