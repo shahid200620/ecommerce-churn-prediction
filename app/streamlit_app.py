@@ -118,7 +118,9 @@ elif page == "🔍 Single Customer Prediction":
     Enter customer feature values below to predict the **likelihood of churn**.
     """)
 
-    feature_names = load_feature_names()
+    from app.predict import get_feature_names_from_model
+    feature_names = get_feature_names_from_model()
+
 
     # 🔒 Safety check (FIXED INDENTATION)
     if not feature_names:
