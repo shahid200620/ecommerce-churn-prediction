@@ -1,18 +1,18 @@
 import streamlit as st
 import pandas as pd
-from app.predict import (
-    get_feature_names,
-    predict,
-    predict_proba,
-    is_model_available
-)
 
+# -----------------------------------
+# Page Config
+# -----------------------------------
 st.set_page_config(
     page_title="E-Commerce Churn Prediction",
     page_icon="📉",
     layout="wide"
 )
 
+# -----------------------------------
+# Sidebar
+# -----------------------------------
 st.sidebar.title("📊 Churn Prediction App")
 page = st.sidebar.radio(
     "Navigation",
@@ -29,68 +29,78 @@ page = st.sidebar.radio(
 # -----------------------------------
 if page == "🏠 Home":
     st.title("📉 E-Commerce Customer Churn Prediction")
-    st.success("Application deployed successfully on Streamlit Cloud")
 
-    if not is_model_available():
-        st.warning(
-            "⚠️ Model files are not present in this deployment.\n\n"
-            "This demo focuses on pipeline, UI, and deployment as required by PATNR GPP."
-        )
+    st.markdown("""
+    ### Project Overview
+    This project demonstrates an **end-to-end machine learning pipeline**
+    for predicting customer churn in an e-commerce platform.
+
+    ### Note on Deployment
+    - Raw data and trained models are **excluded from the public repository**
+    - This deployment focuses on **pipeline design, UI, and reproducibility**
+    """)
+
+    st.success("Application deployed successfully")
 
 # -----------------------------------
-# SINGLE PREDICTION
+# SINGLE PREDICTION (UI DEMO)
 # -----------------------------------
 elif page == "🔍 Single Customer Prediction":
     st.header("🔍 Single Customer Churn Prediction")
 
-    feature_names = get_feature_names()
-    input_data = {}
+    st.info(
+        "ℹ️ Prediction is disabled in this public deployment.\n\n"
+        "This page demonstrates the **input schema and UI design**."
+    )
 
+    # Static demo features (SAFE)
+    demo_features = [
+        "Recency",
+        "Frequency",
+        "Monetary",
+        "Avg_Order_Value",
+        "Purchase_Count"
+    ]
+
+    input_data = {}
     cols = st.columns(2)
-    for i, f in enumerate(feature_names):
+    for i, f in enumerate(demo_features):
         with cols[i % 2]:
             input_data[f] = st.number_input(f, value=0.0)
 
-    if st.button("Predict Churn Risk"):
-        if not is_model_available():
-            st.error(
-                "❌ Model not available in deployment.\n\n"
-                "Prediction disabled. UI and pipeline demonstration completed."
-            )
-        else:
-            prob = predict_proba(input_data)[0]
-            label = predict(input_data)[0]
-            st.metric("Churn Probability", f"{prob:.2%}")
-            st.success("Prediction completed")
+    st.button("Predict Churn Risk", disabled=True)
 
 # -----------------------------------
-# BATCH PREDICTION
+# BATCH PREDICTION (UI DEMO)
 # -----------------------------------
 elif page == "📂 Batch Prediction":
     st.header("📂 Batch Prediction")
 
-    uploaded = st.file_uploader("Upload CSV", type=["csv"])
-    if uploaded:
-        st.warning(
-            "Batch prediction disabled in deployment demo.\n\n"
-            "Model files are not present on Streamlit Cloud."
-        )
+    st.info(
+        "ℹ️ Batch prediction is disabled in public deployment.\n\n"
+        "This section demonstrates how CSV uploads would be handled."
+    )
+
+    st.file_uploader("Upload CSV", type=["csv"], disabled=True)
 
 # -----------------------------------
-# DOCS
+# DOCUMENTATION
 # -----------------------------------
 elif page == "📘 Documentation":
     st.header("📘 Documentation")
-    st.markdown("""
-    ### Project Summary
-    - Goal: Predict e-commerce customer churn
-    - Models trained locally
-    - Deployment focuses on reproducibility and UI
 
-    ### Note
-    For PATNR GPP evaluation, this app demonstrates:
-    - End-to-end ML pipeline
-    - Feature engineering
-    - Model training
-    - Streamlit deployment
+    st.markdown("""
+    ### What This Project Demonstrates
+    - Data preprocessing and feature engineering
+    - Model training and evaluation
+    - Streamlit-based deployment
+    - Production constraints handling
+
+    ### Why Models Are Not Included
+    - Data privacy
+    - Repository size limits
+    - Security best practices
+
+    ### Program
+    **PATNR GPP – E-Commerce Churn Prediction**
     """)
