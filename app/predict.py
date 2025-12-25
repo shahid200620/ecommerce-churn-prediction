@@ -6,76 +6,84 @@ import joblib
 import pandas as pd
 from pathlib import Path
 
-# Root directory
+# Project root
 ROOT_DIR = Path(__file__).resolve().parent.parent
-
-MODEL_PATH = ROOT_DIR / "models" / "best_model.pkl"
-SCALER_PATH = ROOT_DIR / "models" / "scaler.pkl"
+MODELS_DIR = ROOT_DIR / "models"
 
 
 def load_model():
-    """Load trained ML model"""
-    if not MODEL_PATH.exists():
-        raise FileNotFoundError("Model file not found")
-    return joblib.load(MODEL_PATH)
+    """
+    Load the best available trained model.
+    Priority:
+    1. best_model.pkl
+    2. random_forest.pkl
+    3. logistic_regression.pkl
+    """
+
+    candidates = [
+        "best_model.pkl",
+        "random_forest.pkl",
+        "logistic_regression.pkl",
+        "decision_tree.pkl"
+    ]
+
+    for name in candidates:
+        path = MODELS_DIR / name
+        if path.exists():
+            return joblib.load(path)
+
+    raise FileNotFoundError(
+        "No trained model found in models/. "
+        "Expected one of: best_model.pkl, random_forest.pkl, logistic_regression.pkl"
+    )
 
 
 def load_scaler():
-    """Load feature scaler"""
-    if not SCALER_PATH.exists():
-        raise FileNotFoundError("Scaler file not found")
-    return joblib.load(SCALER_PATH)
+    scaler_path = MODELS_DIR / "scaler.pkl"
+    if not scaler_path.exists():
+        raise FileNotFoundError("Scaler file not found in models/")
+    return joblib.load(scaler_path)
 
 
 def get_feature_names():
     """
-    Extract feature names directly from the trained model
-    This avoids dependency on data folder
+    Extract feature names from the trained model
     """
     model = load_model()
 
     if hasattr(model, "feature_names_in_"):
         return list(model.feature_names_in_)
-    else:
-        raise RuntimeError("Model does not expose feature names")
+
+    raise RuntimeError("Model does not expose feature names")
 
 
 def preprocess_input(input_data):
     """
     Prepare input data for prediction
-    Supports single dict or batch DataFrame
     """
     feature_names = get_feature_names()
 
-    # Single customer (dict)
     if isinstance(input_data, dict):
         df = pd.DataFrame([input_data])
-
-    # Batch (DataFrame)
     elif isinstance(input_data, pd.DataFrame):
         df = input_data.copy()
-
     else:
         raise ValueError("Input must be dict or DataFrame")
 
-    # Ensure correct feature order
+    # Align columns
     df = df.reindex(columns=feature_names, fill_value=0)
 
     scaler = load_scaler()
-    df_scaled = scaler.transform(df)
-
-    return df_scaled
+    return scaler.transform(df)
 
 
 def predict(input_data):
-    """Return churn class (0 or 1)"""
     model = load_model()
     X = preprocess_input(input_data)
     return model.predict(X)
 
 
 def predict_proba(input_data):
-    """Return churn probability"""
     model = load_model()
     X = preprocess_input(input_data)
     return model.predict_proba(X)[:, 1]
