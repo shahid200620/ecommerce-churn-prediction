@@ -1,113 +1,81 @@
-"""
-Prediction API for E-Commerce Customer Churn Model
-"""
+# -----------------------------------
+# Prediction API for Churn Model
+# -----------------------------------
 
 import joblib
 import pandas as pd
-import json
-import os
+from pathlib import Path
+
+# Root directory
+ROOT_DIR = Path(__file__).resolve().parent.parent
+
+MODEL_PATH = ROOT_DIR / "models" / "best_model.pkl"
+SCALER_PATH = ROOT_DIR / "models" / "scaler.pkl"
 
 
-# -----------------------------
-# Paths (RELATIVE – Docker safe)
-# -----------------------------
-MODEL_PATH = "models/best_model.pkl"
-SCALER_PATH = "models/scaler.pkl"
-
-
-# -----------------------------
-# Loaders
-# -----------------------------
 def load_model():
-    """
-    Load trained churn prediction model
-    """
-    if not os.path.exists(MODEL_PATH):
+    """Load trained ML model"""
+    if not MODEL_PATH.exists():
         raise FileNotFoundError("Model file not found")
-
     return joblib.load(MODEL_PATH)
 
 
 def load_scaler():
-    """
-    Load feature scaler
-    """
-    if not os.path.exists(SCALER_PATH):
+    """Load feature scaler"""
+    if not SCALER_PATH.exists():
         raise FileNotFoundError("Scaler file not found")
-
     return joblib.load(SCALER_PATH)
 
 
-def get_feature_names_from_model():
+def get_feature_names():
     """
-    Extract feature names directly from trained model
+    Extract feature names directly from the trained model
+    This avoids dependency on data folder
     """
     model = load_model()
 
     if hasattr(model, "feature_names_in_"):
         return list(model.feature_names_in_)
+    else:
+        raise RuntimeError("Model does not expose feature names")
 
-    raise RuntimeError("Model does not expose feature names")
 
-
-
-# -----------------------------
-# Preprocessing
-# -----------------------------
 def preprocess_input(input_data):
     """
-    Preprocess single or batch input data
-
-    Args:
-        input_data (dict or pd.DataFrame)
-
-    Returns:
-        pd.DataFrame: processed input
+    Prepare input data for prediction
+    Supports single dict or batch DataFrame
     """
-    feature_names = get_feature_names_from_model()
+    feature_names = get_feature_names()
 
-
+    # Single customer (dict)
     if isinstance(input_data, dict):
         df = pd.DataFrame([input_data])
+
+    # Batch (DataFrame)
     elif isinstance(input_data, pd.DataFrame):
         df = input_data.copy()
+
     else:
         raise ValueError("Input must be dict or DataFrame")
 
-    # Ensure all required features exist
-    for col in feature_names:
-        if col not in df.columns:
-            df[col] = 0
+    # Ensure correct feature order
+    df = df.reindex(columns=feature_names, fill_value=0)
 
-    # Reorder columns
-    df = df[feature_names]
-
-    # Scale numerical features
     scaler = load_scaler()
-    df_scaled = pd.DataFrame(
-        scaler.transform(df),
-        columns=feature_names
-    )
+    df_scaled = scaler.transform(df)
 
     return df_scaled
 
 
-# -----------------------------
-# Prediction
-# -----------------------------
 def predict(input_data):
-    """
-    Predict churn label (0 or 1)
-    """
+    """Return churn class (0 or 1)"""
     model = load_model()
-    processed = preprocess_input(input_data)
-    return model.predict(processed)
+    X = preprocess_input(input_data)
+    return model.predict(X)
 
 
 def predict_proba(input_data):
-    """
-    Predict churn probability
-    """
+    """Return churn probability"""
     model = load_model()
-    processed = preprocess_input(input_data)
-    return model.predict_proba(processed)[:, 1]
+    X = preprocess_input(input_data)
+    return model.predict_proba(X)[:, 1]

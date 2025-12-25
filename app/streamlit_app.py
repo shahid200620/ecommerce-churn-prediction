@@ -2,25 +2,11 @@
 # Streamlit App: E-Commerce Churn
 # -----------------------------------
 
-from pathlib import Path
-import sys
-import os
-import json
-import joblib
-import pandas as pd
 import streamlit as st
+import pandas as pd
 import plotly.express as px
-
-# -----------------------------------
-# Project root (IMPORTANT for Streamlit Cloud)
-# -----------------------------------
-ROOT_DIR = Path(__file__).resolve().parent.parent
-
-# Fix import path
-sys.path.append(str(ROOT_DIR))
-
-from app.predict import predict, predict_proba
-
+import json
+from app.predict import predict, predict_proba, get_feature_names
 
 # -----------------------------------
 # Page Configuration
@@ -30,33 +16,6 @@ st.set_page_config(
     page_icon="📉",
     layout="wide"
 )
-
-
-# -----------------------------------
-# Cached Loaders
-# -----------------------------------
-@st.cache_resource
-def load_feature_names():
-    feature_path = ROOT_DIR / "data" / "processed" / "feature_names.json"
-
-    if not feature_path.exists():
-        st.error("❌ feature_names.json not found. Please check deployment files.")
-        return []
-
-    with open(feature_path, "r") as f:
-        return json.load(f)
-
-
-@st.cache_resource
-def load_metrics():
-    metrics_path = ROOT_DIR / "models" / "model_metrics.json"
-
-    if not metrics_path.exists():
-        return {}
-
-    with open(metrics_path, "r") as f:
-        return json.load(f)
-
 
 # -----------------------------------
 # Sidebar
@@ -74,154 +33,109 @@ page = st.sidebar.radio(
     ]
 )
 
-
 # -----------------------------------
-# HOME PAGE
+# HOME
 # -----------------------------------
 if page == "🏠 Home":
     st.title("📉 E-Commerce Customer Churn Prediction")
 
     st.markdown("""
     ### 🔍 What is Customer Churn?
-    Customer churn refers to customers who stop purchasing from the platform
-    for a significant period (here, **90 days**).
+    Churn refers to customers who stop purchasing for **90 consecutive days**.
 
-    ### 🎯 Project Objective
-    This application predicts the **probability of customer churn** using
-    historical transaction behavior and machine learning models.
+    ### 🎯 Objective
+    Predict churn probability using historical transaction behavior
+    to help businesses run **targeted retention campaigns**.
 
-    ### 🚀 What this app can do
-    - Predict churn risk for **individual customers**
-    - Perform **bulk predictions** using CSV uploads
-    - Visualize **model performance**
-    - Support **business decision-making**
-
-    ### 🧠 Model Highlights
-    - Models trained: Logistic Regression, Random Forest  
-    - Selected model: **Random Forest**
-    - Key metric: **ROC-AUC**
-
-    ---
-    👉 Use the **sidebar** to explore the app.
+    ### 🚀 Features
+    - Single customer churn prediction
+    - Batch CSV predictions
+    - Model performance dashboard
+    - Business-ready insights
     """)
 
-    st.success("✅ Application is ready for use")
-
+    st.success("✅ Application deployed successfully")
 
 # -----------------------------------
-# SINGLE CUSTOMER PREDICTION
+# SINGLE PREDICTION
 # -----------------------------------
 elif page == "🔍 Single Customer Prediction":
     st.header("🔍 Single Customer Churn Prediction")
 
-    st.markdown("""
-    Enter customer feature values below to predict the **likelihood of churn**.
-    """)
-
-    from app.predict import get_feature_names_from_model
-    feature_names = get_feature_names_from_model()
-
-
-    # 🔒 Safety check (FIXED INDENTATION)
-    if not feature_names:
-        st.stop()
-
+    feature_names = get_feature_names()
     input_data = {}
 
     cols = st.columns(2)
     for i, feature in enumerate(feature_names):
         with cols[i % 2]:
             input_data[feature] = st.number_input(
-                label=feature,
+                feature,
                 value=0.0
             )
 
     if st.button("Predict Churn Risk"):
-        try:
-            prob = predict_proba(input_data)[0]
-            label = predict(input_data)[0]
+        prob = predict_proba(input_data)[0]
+        label = predict(input_data)[0]
 
-            st.subheader("📊 Prediction Result")
-            st.metric(
-                label="Churn Probability",
-                value=f"{prob:.2%}"
-            )
+        st.subheader("📊 Prediction Result")
+        st.metric("Churn Probability", f"{prob:.2%}")
 
-            if label == 1:
-                st.error("⚠️ High Risk: Customer is likely to churn")
-            else:
-                st.success("✅ Low Risk: Customer is likely to stay")
-
-        except Exception as e:
-            st.error(f"Prediction failed: {e}")
-
+        if label == 1:
+            st.error("⚠️ High Risk: Customer likely to churn")
+        else:
+            st.success("✅ Low Risk: Customer likely to stay")
 
 # -----------------------------------
 # BATCH PREDICTION
 # -----------------------------------
 elif page == "📂 Batch Prediction":
-    st.header("📂 Batch Customer Churn Prediction")
+    st.header("📂 Batch Prediction")
 
-    st.markdown("""
-    Upload a CSV file containing customer features.
-    The file must follow the **same structure used during training**.
-    """)
-
-    uploaded_file = st.file_uploader(
-        "Upload CSV file",
-        type=["csv"]
-    )
+    uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
 
     if uploaded_file:
-        try:
-            df = pd.read_csv(uploaded_file)
+        df = pd.read_csv(uploaded_file)
 
-            probs = predict_proba(df)
-            preds = predict(df)
+        probs = predict_proba(df)
+        preds = predict(df)
 
-            df["Churn_Probability"] = probs
-            df["Churn_Prediction"] = preds
+        df["Churn_Probability"] = probs
+        df["Churn_Prediction"] = preds
 
-            st.success("✅ Predictions generated successfully")
-            st.dataframe(df.head())
+        st.success("✅ Predictions generated")
+        st.dataframe(df.head())
 
-            csv = df.to_csv(index=False).encode("utf-8")
-            st.download_button(
-                label="⬇️ Download Predictions",
-                data=csv,
-                file_name="churn_predictions.csv",
-                mime="text/csv"
-            )
-
-        except Exception as e:
-            st.error(f"Batch prediction failed: {e}")
-
+        csv = df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "⬇️ Download Results",
+            csv,
+            "churn_predictions.csv",
+            "text/csv"
+        )
 
 # -----------------------------------
 # MODEL PERFORMANCE
 # -----------------------------------
 elif page == "📈 Model Performance":
-    st.header("📈 Model Performance Dashboard")
+    st.header("📈 Model Performance")
 
-    metrics = load_metrics()
+    try:
+        with open("models/model_metrics.json", "r") as f:
+            metrics = json.load(f)
 
-    if metrics:
-        metrics_df = pd.DataFrame(metrics).T
-        st.subheader("📊 Evaluation Metrics")
-        st.dataframe(metrics_df)
+        df = pd.DataFrame(metrics).T
+        st.dataframe(df)
 
-        if "roc_auc" in metrics_df.columns:
-            fig = px.bar(
-                metrics_df.reset_index(),
-                x="index",
-                y="roc_auc",
-                labels={"index": "Model", "roc_auc": "ROC-AUC"},
-                title="ROC-AUC Comparison"
-            )
-            st.plotly_chart(fig)
-    else:
-        st.warning("Model metrics not available.")
+        fig = px.bar(
+            df.reset_index(),
+            x="index",
+            y="roc_auc",
+            title="ROC-AUC Comparison"
+        )
+        st.plotly_chart(fig)
 
+    except Exception:
+        st.warning("Model metrics not available")
 
 # -----------------------------------
 # DOCUMENTATION
@@ -230,25 +144,23 @@ elif page == "📘 Documentation":
     st.header("📘 Documentation")
 
     st.markdown("""
-    ### 📌 How to Use This App
-    1. Navigate using the sidebar
-    2. Choose **Single Prediction** for individual customers
-    3. Choose **Batch Prediction** for CSV uploads
-    4. Review probabilities and download results
+    ### 📌 How to Use
+    - Use **Single Prediction** for individual customers
+    - Use **Batch Prediction** for CSV uploads
+    - Interpret churn probabilities for business action
 
-    ### ⚙️ Technical Details
-    - Data source: Transaction-level e-commerce data
-    - Churn definition: No purchase in last **90 days**
-    - Feature engineering: RFM + behavioral metrics
-    - Final model: Random Forest
+    ### ⚙️ Technical Summary
+    - Dataset: E-Commerce Transactions
+    - Churn Window: 90 days
+    - Features: RFM + Behavioral
+    - Final Model: Random Forest
 
     ### 📈 Business Value
-    - Early identification of at-risk customers
-    - Targeted retention campaigns
-    - Improved customer lifetime value
+    - Reduce churn
+    - Increase retention ROI
+    - Focus on high-risk customers
 
     ---
     **Developer:** Shahid Mohammed  
-    **Program:** PATNR GPP  
-    **Project:** E-Commerce Customer Churn Prediction
+    **Program:** PATNR GPP
     """)
